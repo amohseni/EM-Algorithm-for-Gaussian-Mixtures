@@ -5,6 +5,7 @@
 
 # Load the shiny GUI library
 library(shiny)
+library(shinyjs)
 
 # Set encoding for special characters
 Sys.setlocale("LC_ALL", "fr_FR.UTF-8")
