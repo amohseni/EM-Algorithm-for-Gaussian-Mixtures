@@ -36,6 +36,10 @@ shinyUI(fluidPage(
         selected = "Data Set 3"
       ),
       
+      plotOutput("distributionPlot", height = "100px"),
+      
+      br(),
+      
       sliderInput(
         "NumberOfComponents",
         "Number of components:",
@@ -45,6 +49,15 @@ shinyUI(fluidPage(
         step = 1
       ),
       
+      sliderInput(
+        "ConfidenceInterval",
+        "Confidence Interval:",
+        min = 0.90,
+        max = 0.99,
+        value = 0.95,
+        step = 0.01
+      ),
+      
       # Run algorithm button
       p(actionButton("runAlgorithm", "Run Algorithm"), align = "center")
       
@@ -52,12 +65,9 @@ shinyUI(fluidPage(
     
     # Main panel with plot outputs
     mainPanel(
-      plotOutput(outputId = "distributionPlot")
+      plotlyOutput("animatedDistributionPlot"),
+      br(),
+      plotOutput("scorePlot", height = "200px")
     )
-    
-    # column(
-    #   width = 3,
-    #   plotOutput(outputId = "scorePlot")
-    # ))
   )
 ))

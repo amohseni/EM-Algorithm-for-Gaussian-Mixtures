@@ -3,12 +3,12 @@
 # by Aydin Mohseni
 
 
-### Install packages
+### Load required packages
 library(shiny)
 library(shinyjs)
+library(plotly)
 library(ggplot2)
 library(mvtnorm)
-library(MASS)
 library(ellipse)
 
 ### Define server logic for Application
@@ -37,14 +37,15 @@ shinyServer(function(input, output, session) {
     df <- chooseData()[[1]]
     # plot data
     ggplot(data = df, aes(V1, V2)) + geom_point() +
-      labs(title = "", x = "X", y = "Y") +
-      theme_light() +
+      ggtitle("") +
+      labs(x = "", y = "") +
+      theme_minimal() +
       theme(
         plot.title = element_blank(),
-        axis.title.x = element_text(size = 16),
+        axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
-        axis.title.y = element_text(size = 16),
+        axis.title.y = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()
       )
@@ -58,13 +59,12 @@ shinyServer(function(input, output, session) {
     input$runAlgorithm
 
       # Load the currently selected data set, and format it
-      df <- chooseData()[[1]]
+      df <- isolate(chooseData()[[1]])
       df <- df[sample(nrow(df)),] # Randomize rows
       colnames(df) <- c("x1", "x2")
 
       # Set the algorithm parameters
-      K <-
-        input$NumberOfComponents # Number of underlying components k=1,..,K
+      K <- input$NumberOfComponents # Number of underlying components k=1,..,K
       N <- nrow(df) # Number of data vectors x_i
       d <- ncol(df) # Dimension of data vectors x_i
       t <- 0 # Timer initialized at 0
@@ -93,15 +93,13 @@ shinyServer(function(input, output, session) {
       ))
       # Vector in which to record the log-likelihood as a function of the number of iterations
       LLHt <- c()
-      # Set up color vector for each component z_k distribution
-      graphColor <- c("red", "blue", "green", "orange", "purple")
-      # Set up the 95% connfidence interval ellipse data frame
+      # Set up the data frame in which to say the component confidence intervals
       EllipsesDf <- data.frame(matrix(
         data = NA,
         nrow = K * 100 * 100, 
         ncol = 4
       ))
-      colnames(EllipsesDf) <- c("x","y","group", "iteration")
+      colnames(EllipsesDf) <- c("x","y","k", "t")
       
       # FUNCTIONS
       # Compute the LIKELIHOOD Pr(x_i|z_ik=1,θ_k):
@@ -158,18 +156,18 @@ shinyServer(function(input, output, session) {
         return(y)
       }
 
-      ### ALGORITHM
+      ### EM ALGORITHM
       
       # Progress bar message
-      withProgress(message = 'Generating plot', value = 0, {
+      withProgress(message = 'Generating plot:', value = 0, {
         
       # Set the E-M algorithm to repeat until convergence is attained
       repeat {
         if (converged == TRUE) {
           # If the algorithm has converged,
           # output results to be accessed by the plots 
-          # return(list(EllipsesDf,
-          #             LLHt))
+          return(list(EllipsesDf,
+                      LLHt))
           # and then signal convergence & end the algorithm
           break
 
@@ -181,26 +179,26 @@ shinyServer(function(input, output, session) {
             for (i in 1:K) {
               kMean[i, ] <- df[sample(1:N, 1), ]
             }
-
+            
             # Initialize each of the K component covariance matrices
             # as the covariance matrix of the whole data set
             for (k in 1:K) {
               assign(paste("covMatrix", k, sep = ""), COV(df))
             }
-            # and their corresponding correlation matrices
-            # (for graphing mean-covariance ellipses)
+            
+            # INITIAL states of distribution means & covariances
+            # Compute the ellipses representing the mean & variances of the distributions
             for (k in 1:K) {
-              w <- as.matrix(eval(parse(
-                text = paste("covMatrix", k, sep = "")
-              )))
-              assign(paste("corMatrix", k, sep = ""), cov2cor(w))
+              # Get the correlation matrix for each component z_k distribution
+              COR <-
+                eval(parse(text = paste("covMatrix", k, sep = "")))
+              # Save the ellipse data representing component z_k mean μ_k & covariances Σ_k
+              EllipsesDf[(t * K * 100 + (k - 1) * 100 + 1):(t * K * 100 + k * 100),] <-
+                cbind(ellipse(COR, centre = as.numeric(kMean[k, ]), level = 0.01), k, t)
             }
-
-            # INITIAL plot of distribution means & covariances
-            # Plot the x-vector data
-
+            
             # Increment iteration
-            t <- t + 1
+            t <- (t + 1)
 
           } else {
             # Step 2: (E-Step) Compute the log-likelihood w.r.t. Pr(z_i|x_i,Θ)
@@ -241,10 +239,15 @@ shinyServer(function(input, output, session) {
               # Name and save the new covariance matrix Σ_k for k=(1,..,K)
               assign(paste("covMatrix", k, sep = ""), v)
             }
-
-            # Plot the means & covariances for the clusters
-           
-            # Plot the ellipses representing the mean & variances of the distributions
+            
+            # [Save] the confidence interval ellipses
+            for (k in 1:K) {
+              # Get the correlation matrix for each component z_k distribution
+              COR <- eval(parse(text = paste("covMatrix", k, sep = "")))
+              # Plot the ellipse representing component z_k mean μ_k & covariances Σ_k
+              EllipsesDf[(t * K * 100 + (k - 1) * 100 + 1):(t * K * 100 + k * 100),] <-
+                cbind(ellipse(COR, centre = as.numeric(kMean[k, ]), level = 0.95), k, t)
+            }
 
             # Step 4: (Convergence)
             # Calculate the log-likelihood
@@ -259,13 +262,8 @@ shinyServer(function(input, output, session) {
             }
             LLH <- sum(LLHn)
 
-            # Save the log-likelihood for this iteration in a data frame
+            # [Save] the log-likelihood for this iteration in a data frame
             LLHt[t] <- LLH
-
-            # INITIAL plot of distribution means & covariances
-            # Plot the x-vector data
-
-            # Plot the ellipses representing the mean & variances of the distributions
 
             # Check for convergence:
             # If the number of iterations is at least 2,
@@ -281,9 +279,10 @@ shinyServer(function(input, output, session) {
             if (converged == FALSE) {
               
               # Increment the progress bar, and update the detail text.
-              incProgress(1 / 20, detail = paste("Running step", t))
-              
+              incProgress(1 / 20, detail = paste("Running iteration", t))
+              # Increment iteration
               t <- t + 1
+              
             }
           }
         }
@@ -291,43 +290,85 @@ shinyServer(function(input, output, session) {
     })
   })
 
-  # ### Plot the data plot, and current Gaussian distributions
-  # output$distributionPlot <- renderPlot({
-  #
-  #   # Load the currently selected data set, and format it
-  #   df <- chooseData()[[1]]
-  #   colnames(df) <- c("x1", "x2")
-  #
-  #   # Load the current means and variances of the distributions
-  #
-  #   # Plot the means & covariances for the clusters
-  #
-  #
-  # }, height = 400, width = 400)
-  #
-  ### Plot the current model score
-  # output$scorePlot <- renderPlot({
-  #
-  #   # Load the relevant data
-  #   LLHt <- EM.Algorithm()[[1]]
-  #
-  #   # Compile the log-likelihood values for each iteration
-  #   # into a single matrix, along with interation indices
-  #   LLHgraph <- data.frame(c(1:t), LLHt)
-  #   colnames(LLHgraph) <- c("Iteration", "LogLikelihood")
-  #
-  #   # Plot the log-likelihood of the model as a function of iterations
-  #   ggplot(LLHgraph, aes(x = Iteration, y = LogLikelihood)) +
-  #     geom_line() + ggtitle("Log-Likelihood as a Function of Iterations") +
-  #     labs(y = "Log-Likelihood log-l(Θ)", x = "Iteration t")
-  #
-  # }, height = 400, width = 400)
-
-  ### 3. Swap static plot for animation
-  # observeEvent(input$runAlgorithm, {
-  #   hide("distributionPlot")
-  #   show("algorithmAnimation")
-  # })
+  ### 4. Output log-likelihood plot
+  output$scorePlot <- renderPlot({
+    # Import required (likelihood) data
+    LLHt <- doEMAlgorithm()[[2]]
+    
+    # Compile the log-likelihood values for each iteration
+    # into a single matrix, along with interation indices
+    LLHgraph <- data.frame(c(1:length(LLHt)), LLHt)
+    colnames(LLHgraph) <- c("Iteration", "LogLikelihood")
+    
+    # Plot the log-likelihood of the model as a function of iterations
+    ggplot(LLHgraph, aes(x = Iteration, y = LogLikelihood)) +
+      geom_line() +
+      ggtitle("Log-likelihood over iterations of the EM Algorithm") +
+      labs(y = "Log-likelihood", x = "Iteration t") +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(
+          hjust = 0.5,
+          margin = margin(b = 10, unit = "pt"),
+          lineheight = 1.15,
+          size = 16
+        ),
+        axis.title.x =  element_text(margin = margin(t = 15, unit = "pt")),
+        axis.title.y =  element_text(margin = margin(r = 15, unit = "pt")),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        legend.text = element_text(size = 14),
+        text = element_text(size = 14)
+      )
+  })
+  
+  ### 4. Plot the current model score
+  output$animatedDistributionPlot <- renderPlotly({
+    # Load the relevant data set
+    df <- isolate(chooseData()[[1]])
+    colnames(df) <- c("x1", "x2")
+    EllipsesDf <- doEMAlgorithm()[[1]]
+    EllipsesDf <- na.omit(EllipsesDf)
+    
+    p <- ggplot(df) +
+      geom_point(aes(x = x1, y = x2), color = "gray20", size = 1) +
+      ggtitle("Evolution of component means and covariances") +
+      labs(x = "X", y = "Y") +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(
+          hjust = 0.5,
+          margin = margin(b = 10, unit = "pt"),
+          lineheight = 1.15,
+          size = 16
+        ),
+        axis.title.x =  element_text(margin = margin(t = 15, unit = "pt")),
+        axis.title.y =  element_text(margin = margin(r = 15, unit = "pt")),
+        legend.position = "right",
+        legend.text = element_text(size = 14),
+        text = element_text(size = 14)
+      ) +
+      scale_color_discrete(name = "Component") +
+      geom_path(data = EllipsesDf,
+                aes(
+                  x = x,
+                  y = y,
+                  colour = as.character(k),
+                  frame = t
+                ))
+    ggplotly(p) %>%
+      config(displayModeBar = F) %>%
+      animation_opts(1000, transition = 0, redraw = FALSE, mode = "immediate") %>%
+      animation_slider(currentvalue = list(prefix = "Iteration ", font = list(color = "black"))) %>%
+      layout(legend = list(
+        font = list(
+          family = "sans-serif",
+          size = 16,
+          color = "#000"
+        )
+      ))
+  })
+  
   
 })
 

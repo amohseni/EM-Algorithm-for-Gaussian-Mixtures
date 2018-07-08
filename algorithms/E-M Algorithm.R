@@ -41,7 +41,7 @@ W <- data.frame(matrix(data = (1/K), nrow = N, ncol = d))
 LLHt <- c()
 # Set up color vector for each component z_k distribution
 graphColor <- c("red", "blue", "green", "orange", "purple")
-# Set up the 95% connfidence interval ellipse data frame
+# Set up the data frame in which to say the component confidence intervals
 EllipsesDf <- data.frame(matrix(
   data = NA,
   nrow = K * 100 * 100, 
@@ -131,7 +131,7 @@ repeat {
         COR <- eval(parse(text = paste("covMatrix", k, sep = "")))
         # Save the ellipse data representing component z_k mean μ_k & covariances Σ_k
         EllipsesDf[(t * K * 100 + (k - 1) * 100 + 1):(t * K * 100 + k * 100), ] <-
-          cbind(ellipse(COR, centre = as.numeric(kMean[k,]), level = 0.05), k, t)
+          cbind(ellipse(COR, centre = as.numeric(kMean[k,]), level = 0.01), k, t)
       }
       
       # Increment iteration
