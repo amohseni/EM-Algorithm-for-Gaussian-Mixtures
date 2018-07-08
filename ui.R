@@ -31,20 +31,21 @@ shinyUI(fluidPage(
       
       selectInput(
         "DataSet",
-        "Data set:",
+        "Input data:",
         c("Data Set 1", "Data Set 2", "Data Set 3"),
         selected = "Data Set 3"
       ),
       
       sliderInput(
         "NumberOfComponents",
-        "Number of distributions:",
+        "Number of components:",
         min = 1,
         max = 5,
         value = 2,
         step = 1
       ),
       
+      # Run algorithm button
       p(actionButton("runAlgorithm", "Run Algorithm"), align = "center")
       
     ),

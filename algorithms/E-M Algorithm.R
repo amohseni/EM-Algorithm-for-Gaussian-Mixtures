@@ -3,7 +3,7 @@
 # by Aydin Mohseni
 
 # Install Packages
-install.packages(c("ggplot2", "mvtnorm", "MASS", "ellipse"))
+# install.packages(c("ggplot2", "mvtnorm", "MASS", "ellipse"))
 library(ggplot2)
 library(mvtnorm)
 library(MASS)
@@ -16,13 +16,13 @@ setwd(DIR)
 getwd()
 
 # Import DataSet 1
-DATA <- data.frame(read.table("dataset2.txt"))
+DATA <- data.frame(read.table("dataset3.txt"))
 
 # Import data & assign basic data variables
 df <- DATA # Choose data set
 df <- df[sample(nrow(df)),] # Randomize rows
 colnames(df) <- c("x1", "x2")
-K <- 3 # Number of underlying components k=1,..,K
+K <- 2 # Number of underlying components k=1,..,K
 N <- nrow(df) # Number of data vectors x_i
 d <- ncol(df) # Dimension of data vectors x_i
 t <- 0 # Timer initialized at 0
@@ -41,7 +41,13 @@ W <- data.frame(matrix(data = (1/K), nrow = N, ncol = d))
 LLHt <- c()
 # Set up color vector for each component z_k distribution
 graphColor <- c("red", "blue", "green", "orange", "purple")
-
+# Set up the 95% connfidence interval ellipse data frame
+EllipsesDf <- data.frame(matrix(
+  data = NA,
+  nrow = K * 100 * 100, 
+  ncol = 4
+))
+colnames(EllipsesDf) <- c("x","y","k", "t")
 
 # FUNCTIONS
 # Compute the LIKELIHOOD Pr(x_i|z_ik=1,θ_k): 
@@ -115,32 +121,21 @@ repeat {
       for(k in 1:K) {
         assign(paste("covMatrix", k, sep = ""), COV(df))
       }
-      print("Initial covariance matrix μ_k (k=1,..,K)")
+      print("Initial covariance matrix Σ")
       print(covMatrix1)
-      # and their corresponding correlation matrices 
-      # (for graphing mean-covariance ellipses)
-      for (k in 1:K) {
-        w <- as.matrix(eval(parse(text = paste("covMatrix", k, sep = ""))))
-        assign(paste("corMatrix", k, sep = ""), cov2cor(w))
-      }
       
-      # INITIAL plot of distribution means & covariances
-      # Plot the x-vector data
-      plot(df, main = "Initial Distribution Means & Covariances", 
-           cex = .5, las = 1, bty = "l", pch = 19, col="gray30", 
-           xlab = "X", ylab = "Y")
-      # Plot the ellipses representing the mean & variances of the distributions
+      # INITIAL states of distribution means & covariances
+      # Compute the ellipses representing the mean & variances of the distributions
       for (k in 1:K) {
-        # Set up unique colors for each component z_k distribution
-        graphColor <- c("red", "blue", "green", "yellow")
         # Get the correlation matrix for each component z_k distribution
         COR <- eval(parse(text = paste("covMatrix", k, sep = "")))
-        # Plot the ellipse representing component z_k mean μ_k & covariances Σ_k
-        lines(ellipse(COR, centre = as.numeric(kMean[k,]), level = 0.95), col = graphColor[k], lwd=2)
+        # Save the ellipse data representing component z_k mean μ_k & covariances Σ_k
+        EllipsesDf[(t * K * 100 + (k - 1) * 100 + 1):(t * K * 100 + k * 100), ] <-
+          cbind(ellipse(COR, centre = as.numeric(kMean[k,]), level = 0.05), k, t)
       }
       
       # Increment iteration
-      t <- t+1
+      t <- (t + 1)
       
     } else {
       
@@ -181,20 +176,16 @@ repeat {
         # Name and save the new covariance matrix Σ_k for k=(1,..,K)
         assign(paste("covMatrix", k, sep = ""), v)
       }
-
-      # Plot the means & covariances for the clusters
-      plot(df, main = paste("Distribution Means & Covariances for Iteration ", t, sep = ""), 
-           cex = .5, las = 1, bty = "l", pch = 19, col="gray30", 
-           xlab = "X", ylab = "Y")
-      # Plot the ellipses representing the mean & variances of the distributions
+      
+      # Produce the confidence interval ellipses
       for (k in 1:K) {
-        # Set up unique colors for each component z_k distribution
-        graphColor <- c("red", "blue", "green", "yellow")
         # Get the correlation matrix for each component z_k distribution
         COR <- eval(parse(text = paste("covMatrix", k, sep = "")))
         # Plot the ellipse representing component z_k mean μ_k & covariances Σ_k
-        lines(ellipse(COR, centre = as.numeric(kMean[k,]), level = 0.95), col = graphColor[k], lwd=2)
+        EllipsesDf[(t * K * 100 + (k - 1) * 100 + 1):(t * K * 100 + k * 100), ] <-
+          cbind(ellipse(COR, centre = as.numeric(kMean[k,]), level = 0.95), k, t)
       }
+  
       
       # Step 4: (Convergence)
       # Calculate the log-likelihood 
@@ -230,15 +221,72 @@ repeat {
   }
 }
 
+# Plot the means & covariances for the clusters
+# Clear ellipse data
+EllipsesDf <- na.omit(EllipsesDf)
+p <- ggplot(df) +
+  geom_point(aes(x = x1, y = x2), color = "gray20", size = 1) +
+  ggtitle("Component Means and Covariances") +
+  labs(x = "X", y = "Y") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5,
+      margin = margin(b = 10, unit = "pt"),
+      lineheight = 1.15,
+      size = 16
+    ),
+    axis.title.x =  element_text(margin = margin(t = 15, unit = "pt")),
+    axis.title.y =  element_text(margin = margin(r = 15, unit = "pt")),
+    legend.position = "right",
+    legend.text = element_text(size = 14),
+    text = element_text(size = 14)
+  ) +
+  scale_color_discrete(name = "Confidence \nInterval \nfor Component") +
+  geom_path(data = EllipsesDf,
+            aes(
+              x = x,
+              y = y,
+              colour = as.character(k),
+              frame = t
+            ))
+base <- ggplotly(p)
+base %>%
+  animation_opts(1000, transition = 0, redraw = FALSE) %>%
+  animation_slider(currentvalue = list(prefix = "Iteration ", font = list(color = "black"))) %>%
+  layout(legend = list(
+    font = list(
+      family = "sans-serif",
+      size = 16,
+      color = "#000"
+    )
+  ))
+
 # Compile the log-likelihood values for each iteration
 # into a single matrix, along with interation indices
 LLHgraph <- data.frame(c(1:t), LLHt)
 colnames(LLHgraph) <- c("Iteration", "LogLikelihood")
 
 # Plot the log-likelihood of the model as a function of iterations
-s <- ggplot(LLHgraph, aes(x = Iteration, y = LogLikelihood)) + 
-  geom_line() + ggtitle("Log-Likelihood as a Function of Iterations") +
-  labs(y = "Log-Likelihood log-l(Θ)", x="Iteration t")
+s <- ggplot(LLHgraph, aes(x = Iteration, y = LogLikelihood)) +
+  geom_line() +
+  ggtitle("Log-likelihood Over Iterations of the Algorithm") +
+  labs(y = "Log-likelihood", x = "Iteration t") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5,
+      margin = margin(b = 10, unit = "pt"),
+      lineheight = 1.15,
+      size = 16
+    ),
+    axis.title.x =  element_text(margin = margin(t = 15, unit = "pt")),
+    axis.title.y =  element_text(margin = margin(r = 15, unit = "pt")),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 14),
+    text = element_text(size = 14)
+  )
 print(s)
 
 # Print the final mean vectors μ_k & covariance matrices Σ_k
