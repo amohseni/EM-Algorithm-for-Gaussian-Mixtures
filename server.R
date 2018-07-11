@@ -16,13 +16,13 @@ shinyServer(function(input, output, session) {
   ### 1. Load the selected data set
   chooseData <- reactive({
     if (input$DataSet == "Data Set 1") {
-      data <- data.frame(read.table("data/dataset1.txt"))
+      data <- data.frame(read.csv("data/dataset1.csv"))
     }
     if (input$DataSet == "Data Set 2") {
-      data <- data.frame(read.table("data/dataset2.txt"))
+      data <- data.frame(read.csv("data/dataset2.csv"))
     }
     if (input$DataSet == "Data Set 3") {
-      data <- data.frame(read.table("data/dataset3.txt"))
+      data <- data.frame(read.csv("data/dataset3.csv"))
     }
     # If the user upload her own data, use that
     inFile <- input$file1
@@ -69,12 +69,12 @@ shinyServer(function(input, output, session) {
     
     # Set the algorithm parameters
     K <-
-      input$NumberOfComponents # Number of underlying components k=1,..,K
+      isolate(input$NumberOfComponents) # Number of underlying components k=1,..,K
     N <- nrow(df) # Number of data vectors x_i
     d <- ncol(df) # Dimension of data vectors x_i
     t <- 0 # Timer initialized at 0
     converged <- FALSE # Convergence status initialized
-    confidenceInterval <- input$ConfidenceInterval
+    confidenceInterval <- isolate(input$ConfidenceInterval)
     
     # Create data frames in which to store relevant computations:
     # Component mean vectors μ_k (k=1,..,K)
@@ -367,7 +367,7 @@ shinyServer(function(input, output, session) {
         )
       ) %>%
       config(displayModeBar = F) %>%
-      animation_opts(frame = 100,
+      animation_opts(frame = 200,
                      transition = 0,
                      redraw = FALSE) %>%
       animation_slider(currentvalue = list(prefix = "Iteration "))
@@ -401,7 +401,7 @@ shinyServer(function(input, output, session) {
         legend.text = element_text(size = 14),
         text = element_text(size = 14)
       ) +
-      scale_color_discrete(name = "K") +
+      scale_color_manual(values = c("indianred3", "#4FA7EF", "darkseagreen", "goldenrod1"), name = "K") +
       geom_path(data = EllipsesDf,
                 aes(
                   x = x,
@@ -413,7 +413,7 @@ shinyServer(function(input, output, session) {
     # Produce the animated version of the plot
     ggplotly(p) %>%
       config(displayModeBar = F) %>%
-      animation_opts(100,
+      animation_opts(200,
                      transition = 0,
                      redraw = FALSE,
                      mode = "immediate") %>%
