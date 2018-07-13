@@ -6,6 +6,7 @@
 # Load the shiny GUI library
 library(shiny)
 library(shinyjs)
+library(plotly)
 
 # Set encoding for special characters
 Sys.setlocale("LC_ALL", "fr_FR.UTF-8")

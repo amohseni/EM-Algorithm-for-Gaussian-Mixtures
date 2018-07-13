@@ -353,7 +353,6 @@ shinyServer(function(input, output, session) {
         fill = 'tozeroy',
         fillcolor = 'rgba(79,167,239,0.5)',
         line = list(color = 'rgba(79,167,239,1.0)'),
-        # text = ~paste("Day: ", ID, "<br>Close: $", AAPL.Close),
         hoverinfo = 'text'
       ) %>%
       layout(
