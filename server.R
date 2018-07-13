@@ -25,9 +25,10 @@ shinyServer(function(input, output, session) {
       data <- data.frame(read.csv("data/dataset3.csv"))
     }
     # If the user upload her own data, use that
-    inFile <- input$file1
-    if (!is.null(inFile)) {
-      data <- data.frame(read.csv(inFile))
+    uploadedFile <- input$uploadedFile
+    if (!is.null(uploadedFile)) {
+      data <- data.frame(read.csv(uploadedFile$datapath))
+      uploadedFile <- NULL
     }
     
     # output data to be accessed by other reactive contexts
@@ -202,7 +203,7 @@ shinyServer(function(input, output, session) {
                 cbind(ellipse(
                   COR,
                   centre = as.numeric(kMean[k, ]),
-                  level = 0.01
+                  level = 0.00001
                 ),
                 k,
                 t)
@@ -357,13 +358,13 @@ shinyServer(function(input, output, session) {
       ) %>%
       layout(
         title = "Log-likelihood over iterations",
-        yaxis = list(title = "Log-Likelihood",
-                     zeroline = F),
+        yaxis = list(
+          title = "Log-Likelihood",
+          showline = F
+        ),
         xaxis = list(
           showline = F,
-          showticklabels = F,
-          zeroline = T,
-          showgrid = T
+          showticklabels = F
         )
       ) %>%
       config(displayModeBar = F) %>%
@@ -402,13 +403,16 @@ shinyServer(function(input, output, session) {
         text = element_text(size = 14)
       ) +
       scale_color_manual(values = c("indianred3", "#4FA7EF", "darkseagreen", "goldenrod1"), name = "K") +
-      geom_path(data = EllipsesDf,
-                aes(
-                  x = x,
-                  y = y,
-                  colour = as.character(k),
-                  frame = t
-                ))
+      scale_fill_manual(values = c("indianred3", "#4FA7EF", "darkseagreen", "goldenrod1"), name = "K") +
+      geom_polygon(data = EllipsesDf,
+                   aes(
+                     x = x,
+                     y = y,
+                     fill = as.character(k),
+                     color = as.character(k),
+                     frame = t
+                   ),
+                   alpha = 0.65)
     
     # Produce the animated version of the plot
     ggplotly(p) %>%

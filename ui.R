@@ -80,7 +80,7 @@ shinyUI(fluidPage(
       
       br(),
       
-      fileInput('file1', 'Or upload your own file:',
+      fileInput('uploadedFile', 'Or upload your own file:',
                 accept = c(
                   'text/csv',
                   'text/comma-separated-values',
@@ -88,11 +88,12 @@ shinyUI(fluidPage(
                   'text/plain',
                   '.csv',
                   '.tsv'
-                )
+                ),
+                placeholder = "    No file selected"
       ),
       tags$hr(),
       p('You can upload any comma-separated CSV, TSV, or TXT file
-        where the X and Y are contained in the table columns.'),
+        where the X and Y values are contained in the table columns.'),
       tags$hr(),
       
       sliderInput(
