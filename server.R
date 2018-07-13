@@ -308,7 +308,52 @@ shinyServer(function(input, output, session) {
     })
   })
   
-  ### 4. Output log-likelihood plot
+  ### 4. Plot the evolution of the EM Algorithm
+  output$animatedDistributionPlot <- renderPlotly({
+    # Load the relevant data sets
+    df <- isolate(chooseData()[[1]])
+    colnames(df) <- c("x1", "x2")
+    EllipsesDf <- doEMAlgorithm()[[1]]
+    EllipsesDf <- na.omit(EllipsesDf)
+    
+    # Produce the plot of the evolution of the component means and variances
+    p <- ggplot(df) +
+      geom_point(aes(x = x1, y = x2), color = "gray20", size = 1) +
+      ggtitle("Evolution of estimate of component means and covariances") +
+      labs(x = "X", y = "Y") +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(
+          hjust = 0.5,
+          margin = margin(b = 10, unit = "pt"),
+          lineheight = 1.15
+        ),
+        axis.title.x =  element_text(margin = margin(t = 15, unit = "pt")),
+        axis.title.y =  element_text(margin = margin(r = 15, unit = "pt")),
+        legend.position = "right"
+      ) +
+      scale_color_manual(values = c("indianred3", "#4FA7EF", "darkseagreen", "goldenrod1", "darkorchid3"), name = "K") +
+      scale_fill_manual(values = c("indianred3", "#4FA7EF", "darkseagreen", "goldenrod1", "darkorchid3"), name = "K") +
+      geom_polygon(data = EllipsesDf,
+                   aes(
+                     x = x,
+                     y = y,
+                     fill = as.character(k),
+                     color = as.character(k),
+                     frame = t
+                   ),
+                   alpha = 0.65)
+    
+    # Produce the animated version of the plot
+    ggplotly(p) %>%
+      config(displayModeBar = F) %>%
+      animation_opts(200,
+                     transition = 0,
+                     redraw = FALSE) %>%
+      animation_slider(currentvalue = list(prefix = "Iteration ", hide = F))
+  })
+  
+  ### 5. Plot the log-likelihood over iterations of the algorithm
   output$scorePlot <- renderPlotly({
     # Import required (likelihood) data
     LLHt <- doEMAlgorithm()[[2]]
@@ -353,13 +398,15 @@ shinyServer(function(input, output, session) {
         fill = 'tozeroy',
         fillcolor = 'rgba(79,167,239,0.5)',
         line = list(color = 'rgba(79,167,239,1.0)'),
-        hoverinfo = 'text'
+        hoverinfo = F
       ) %>%
       layout(
         title = "Log-likelihood over iterations",
         yaxis = list(
           title = "Log-Likelihood",
-          showline = F
+          showline = F,
+          showticklabels = F,
+          zeroline = F
         ),
         xaxis = list(
           showline = F,
@@ -367,67 +414,12 @@ shinyServer(function(input, output, session) {
         )
       ) %>%
       config(displayModeBar = F) %>%
-      animation_opts(frame = 200,
-                     transition = 0,
-                     redraw = FALSE) %>%
-      animation_slider(currentvalue = list(prefix = "Iteration "))
-    
-  })
-  
-  ### 5. Plot the evolution of the EM Algorithm
-  output$animatedDistributionPlot <- renderPlotly({
-    # Load the relevant data sets
-    df <- isolate(chooseData()[[1]])
-    colnames(df) <- c("x1", "x2")
-    EllipsesDf <- doEMAlgorithm()[[1]]
-    EllipsesDf <- na.omit(EllipsesDf)
-    
-    # Produce the plot of the evolution of the component means and variances
-    p <- ggplot(df) +
-      geom_point(aes(x = x1, y = x2), color = "gray20", size = 1) +
-      ggtitle("Evolution of component means and covariances") +
-      labs(x = "X", y = "Y") +
-      theme_minimal() +
-      theme(
-        plot.title = element_text(
-          hjust = 0.5,
-          margin = margin(b = 10, unit = "pt"),
-          lineheight = 1.15,
-          size = 16
-        ),
-        axis.title.x =  element_text(margin = margin(t = 15, unit = "pt")),
-        axis.title.y =  element_text(margin = margin(r = 15, unit = "pt")),
-        legend.position = "right",
-        legend.text = element_text(size = 14),
-        text = element_text(size = 14)
-      ) +
-      scale_color_manual(values = c("indianred3", "#4FA7EF", "darkseagreen", "goldenrod1"), name = "K") +
-      scale_fill_manual(values = c("indianred3", "#4FA7EF", "darkseagreen", "goldenrod1"), name = "K") +
-      geom_polygon(data = EllipsesDf,
-                   aes(
-                     x = x,
-                     y = y,
-                     fill = as.character(k),
-                     color = as.character(k),
-                     frame = t
-                   ),
-                   alpha = 0.65)
-    
-    # Produce the animated version of the plot
-    ggplotly(p) %>%
-      config(displayModeBar = F) %>%
       animation_opts(200,
                      transition = 0,
-                     redraw = FALSE,
-                     mode = "immediate") %>%
-      animation_slider(currentvalue = list(prefix = "Iteration ", font = list(color = "black"))) %>%
-      layout(legend = list(font = list(
-        family = "sans-serif",
-        size = 16,
-        color = "#000"
-      )))
+                     redraw = FALSE) %>%
+      animation_slider(currentvalue = list(prefix = "Iteration "), hide = F)
+    
   })
-  
   
 })
 

@@ -5,9 +5,9 @@ account: amohseni
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 378398
-bundleId: 1478519
+bundleId: 1478630
 url: https://amohseni.shinyapps.io/EM-Algorithm-for-Gaussian-Mixtures/
-when: 1531463328.78726
+when: 1531469142.09559
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: test + accumulate plotly.R|test + Plotly.R|test + simple plotly.R|test.R|algorithms/E-M Algorithm.R|algorithms/K-Means Algorithm.R|algorithms/K-Select for Gaussian Mixture.R|algorithms/data/.RData|algorithms/data/.Rhistory|algorithms/data/dataset1.txt|algorithms/data/dataset2.txt|algorithms/data/dataset3.txt|algorithms/data/labelset3.txt|data/.DS_Store|data/.RData|data/.Rhistory|data/dataset1.txt|data/dataset2.txt|data/dataset3.txt|data/labelset3.txt

@@ -46,7 +46,7 @@ shinyUI(fluidPage(
         "Here, we assume that there are \\(K\\)  Gaussian components, 
         and we attempt to learn their means and covariances.
         The EM is initialized at random, then proceeds by alternating between assessing the log-likelihood of the data given the parameters of the model (the E step) 
-        and updating the parameters of the model to maximize the likelihood of that expectation (the M step).
+        and updating the parameters of the model to maximize the likelihood of that assessment (the M step).
         The updated parameters are then used in the next E step.
         The algorithm converges when gains in log-likehood become negligible."
       )
@@ -56,7 +56,7 @@ shinyUI(fluidPage(
       p(
         tags$b("Instructions:"),
         "Select the data set, number of components \\(K\\)  for the model, 
-        and confidence interval \\((1-\\epsilon)\\)  to be displayed, then select 'RUN ALGORITHM'.", 
+        and \\((1-\\epsilon)-\\)confidence region to be displayed, then select 'RUN ALGORITHM'.", 
         br(), br(), 
         "After running the algorithm, 
         you can play the animations for the evolution of the component parameter estimates 
@@ -108,7 +108,7 @@ shinyUI(fluidPage(
       
       sliderInput(
         "ConfidenceInterval",
-        "Confidence interval \\((1-\\epsilon)\\):",
+        "\\((1-\\epsilon)-\\)confidence region:",
         min = 0.90,
         max = 0.99,
         value = 0.95,
